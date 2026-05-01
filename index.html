@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vResolve</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f1a;--bg2:#16162a;--bg3:#1e1e35;--card:#22223a;
+  --border:#2e2e50;--text:#e8e8f0;--muted:#8888aa;
+  --accent:#7c6af7;--accent2:#5e4fd4;--green:#22c97a;--red:#f05a5a;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+
+/* AUTH */
+#auth{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;background:linear-gradient(135deg,#0f0f1a 0%,#1a1035 100%)}
+.auth-logo{font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,#7c6af7,#22c97a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
+.auth-tagline{color:var(--muted);margin-bottom:2.5rem;font-size:.95rem;text-align:center}
+.pills{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-bottom:2.5rem}
+.pill{background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:.3rem .9rem;font-size:.78rem;color:var(--muted)}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:380px}
+.auth-card h2{font-size:1.1rem;font-weight:600;margin-bottom:1.5rem;text-align:center}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:.4rem}
+.form-group input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;color:var(--text);font-size:.9rem;outline:none;transition:border .2s}
+.form-group input:focus{border-color:var(--accent)}
+.btn-primary{width:100%;background:var(--accent);border:none;border-radius:8px;padding:.75rem;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .2s;margin-top:.5rem}
+.btn-primary:hover{background:var(--accent2)}
+.auth-switch{text-align:center;margin-top:1rem;font-size:.83rem;color:var(--muted)}
+.auth-switch span{color:var(--accent);cursor:pointer}
+.auth-error{color:var(--red);font-size:.82rem;margin-top:.5rem;text-align:center;display:none}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:.65rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:1.2rem;font-weight:700;background:linear-gradient(135deg,#7c6af7,#22c97a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.topbar-right{display:flex;align-items:center;gap:.75rem;position:relative}
+.notif-btn{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:.25rem}
+.notif-btn:hover{color:var(--text)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:600;color:#fff;cursor:pointer;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+
+/* Dropdown */
+.dropdown{position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;min-width:220px;z-index:200;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.dropdown-header{padding:.9rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.6rem}
+.dropdown-name{font-weight:600;font-size:.88rem}
+.dropdown-email{font-size:.75rem;color:var(--muted)}
+.dropdown-item{display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;font-size:.85rem;cursor:pointer;transition:background .15s;color:var(--text)}
+.dropdown-item:hover{background:var(--bg3)}
+.dropdown-item .di-icon{font-size:1rem;width:20px;text-align:center}
+.dropdown-divider{border-top:1px solid var(--border);margin:.25rem 0}
+.dropdown-item.danger{color:var(--red)}
+
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{flex:1;padding:.8rem;text-align:center;font-size:.85rem;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;min-width:90px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none;padding:1rem;max-width:680px;margin:0 auto;width:100%}
+.tab-content.active{display:block}
+
+/* FEED welcome bar */
+.feed-welcome{padding:.75rem 1rem;margin-bottom:.75rem}
+.feed-welcome .welcome-line{font-size:.85rem;color:var(--muted)}
+.feed-welcome .welcome-name{font-size:1.25rem;font-weight:700}
+
+/* Post composer */
+.post-composer{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1rem}
+.composer-top{display:flex;gap:.75rem;align-items:center;margin-bottom:.75rem}
+.composer-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:24px;padding:.65rem 1.1rem;color:var(--text);font-size:.9rem;outline:none;font-family:var(--font);transition:border .2s;resize:none;cursor:pointer}
+.composer-input:focus{border-color:var(--accent);cursor:text;border-radius:8px}
+.composer-actions{display:flex;align-items:center;gap:.5rem;border-top:1px solid var(--border);padding-top:.75rem}
+.compose-btn{display:flex;align-items:center;gap:.4rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:.4rem .9rem;font-size:.82rem;color:var(--muted);cursor:pointer;transition:all .2s}
+.compose-btn:hover{border-color:var(--accent);color:var(--accent)}
+.compose-btn.photo{color:#4caf8a}
+.compose-btn.photo:hover{border-color:#4caf8a;color:#4caf8a}
+.compose-btn.article{color:#9b7ef7}
+.compose-btn.article:hover{border-color:#9b7ef7;color:#9b7ef7}
+.btn-post{margin-left:auto;background:var(--accent);border:none;border-radius:20px;padding:.45rem 1.3rem;color:#fff;font-weight:600;font-size:.85rem;cursor:pointer}
+.btn-post:hover{background:var(--accent2)}
+
+/* Expanded composer */
+.composer-expanded{display:none;margin-bottom:.75rem}
+.composer-expanded textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.75rem;color:var(--text);font-size:.9rem;resize:vertical;outline:none;font-family:var(--font);min-height:80px}
+.composer-expanded textarea:focus{border-color:var(--accent)}
+.photo-preview{margin-top:.5rem;border-radius:8px;overflow:hidden;max-height:200px;display:none}
+.photo-preview img{width:100%;object-fit:cover;border-radius:8px}
+
+.post-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.post-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.6rem}
+.post-header-left{display:flex;align-items:center;gap:.6rem}
+.post-meta .post-name{font-weight:600;font-size:.88rem}
+.post-meta .post-sub{font-size:.75rem;color:var(--muted)}
+.post-body{font-size:.9rem;line-height:1.6;margin-bottom:.75rem}
+.post-img{width:100%;border-radius:8px;margin-bottom:.75rem;object-fit:cover;max-height:260px}
+.post-actions{display:flex;gap:.5rem;border-top:1px solid var(--border);padding-top:.65rem}
+.post-action{background:none;border:none;color:var(--muted);font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:6px;transition:all .2s;flex:1;justify-content:center}
+.post-action:hover{background:var(--bg3);color:var(--text)}
+.post-action.liked{color:var(--red)}
+
+/* VAULT */
+.anon-notice{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;font-size:.82rem;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.vault-post{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.ai-response{background:var(--bg3);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:.75rem 1rem;margin-top:.75rem;font-size:.85rem;line-height:1.6;color:#c8c8e8}
+.ai-label{font-size:.75rem;color:var(--accent);font-weight:600;margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem}
+.ai-thinking{display:flex;gap:4px;align-items:center;padding:.5rem 0}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:bounce .8s infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+/* WELLNESS */
+.wellness-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem}
+@media(max-width:500px){.wellness-grid{grid-template-columns:1fr}}
+.wellness-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem}
+.wellness-card h3{font-size:.88rem;font-weight:600;margin-bottom:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stat-big{font-size:2rem;font-weight:700;line-height:1}
+.stat-label{font-size:.78rem;color:var(--muted);margin-top:.2rem}
+.progress-bar{background:var(--bg3);border-radius:999px;height:8px;margin:.75rem 0 .4rem;overflow:hidden}
+.progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s}
+.calorie-input-row{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+.calorie-input-row input{flex:1;min-width:80px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;color:var(--text);font-size:.9rem;outline:none}
+.calorie-input-row input:focus{border-color:var(--accent)}
+.btn-sm{background:var(--accent);border:none;border-radius:8px;padding:.5rem .9rem;color:#fff;font-size:.82rem;cursor:pointer;white-space:nowrap}
+.btn-sm:hover{background:var(--accent2)}
+.timer-display{font-size:2.8rem;font-weight:700;text-align:center;letter-spacing:.05em;margin:.5rem 0}
+.timer-controls{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.btn-timer{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.45rem .9rem;color:var(--text);font-size:.82rem;cursor:pointer}
+.btn-timer:hover{border-color:var(--accent);color:var(--accent)}
+.btn-timer.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-top:.75rem}
+.chart-wrap h3{font-size:.88rem;font-weight:600;margin-bottom:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+
+/* Profile settings modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:300;padding:1rem}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:100%;max-width:400px}
+.modal-box h3{margin-bottom:1.25rem;font-size:1rem;font-weight:600}
+.modal-avatar-row{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem}
+.modal-avatar{width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:600;color:#fff;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative}
+.modal-avatar img{width:100%;height:100%;object-fit:cover}
+.modal-avatar-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:.7rem;color:#fff;text-align:center}
+.modal-avatar:hover .modal-avatar-overlay{opacity:1}
+.modal-avatar-hint{font-size:.78rem;color:var(--muted);line-height:1.4}
+.modal-form .form-group{margin-bottom:.9rem}
+.modal-form .form-group label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.35rem}
+.modal-form .form-group input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;color:var(--text);font-size:.88rem;outline:none}
+.modal-form .form-group input:focus{border-color:var(--accent)}
+.modal-btns{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.25rem}
+.btn-ghost{background:none;border:1px solid var(--border);border-radius:8px;padding:.5rem 1rem;color:var(--muted);font-size:.85rem;cursor:pointer}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-save{background:var(--accent);border:none;border-radius:8px;padding:.5rem 1.2rem;color:#fff;font-size:.85rem;font-weight:600;cursor:pointer}
+.btn-save:hover{background:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-logo">vResolve</div>
+  <div class="auth-tagline">Your social wellness companion</div>
+  <div class="pills">
+    <div class="pill">📣 Public Feed</div>
+    <div class="pill">🔒 Anonymous Vault</div>
+    <div class="pill">🧘 Wellness Tracker</div>
+    <div class="pill">🤖 AI First Responder</div>
+  </div>
+  <div class="auth-card">
+    <h2 id="auth-title">Sign in to vResolve</h2>
+    <div id="login-form">
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <div class="auth-error" id="login-error">Invalid email or password.</div>
+      <button class="btn-primary" onclick="doLogin()">Sign in</button>
+      <div class="auth-switch">No account? <span onclick="showRegister()">Create one</span></div>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group"><label>Name</label><input type="text" id="reg-name" placeholder="Your name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-pass" placeholder="Min 6 characters"></div>
+      <div class="auth-error" id="reg-error"></div>
+      <button class="btn-primary" onclick="doRegister()">Create account</button>
+      <div class="auth-switch">Have an account? <span onclick="showLogin()">Sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE SETTINGS MODAL -->
+<div class="modal-overlay" id="profile-modal" style="display:none" onclick="closeProfileModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3>Account Settings</h3>
+    <div class="modal-avatar-row">
+      <div class="modal-avatar" id="modal-avatar-preview" onclick="document.getElementById('avatar-file').click()">
+        <span id="modal-avatar-initials"></span>
+        <div class="modal-avatar-overlay">Change<br>photo</div>
+      </div>
+      <input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+      <div class="modal-avatar-hint">Click avatar to upload a profile photo.<br>JPG, PNG supported.</div>
+    </div>
+    <div class="modal-form">
+      <div class="form-group"><label>Display Name</label><input type="text" id="settings-name" placeholder="Your name"></div>
+      <div class="form-group"><label>Bio</label><input type="text" id="settings-bio" placeholder="Tell something about yourself"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="settings-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>New Password <span style="color:var(--muted);font-size:.75rem">(leave blank to keep current)</span></label><input type="password" id="settings-pass" placeholder="New password"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeProfileModal()">Cancel</button>
+      <button class="btn-save" onclick="saveProfile()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">vResolve</div>
+    <div class="topbar-right">
+      <button class="notif-btn" title="Notifications">🔔</button>
+      <div class="avatar" id="topbar-avatar" onclick="toggleDropdown()"></div>
+      <!-- Dropdown -->
+      <div class="dropdown" id="user-dropdown" style="display:none">
+        <div class="dropdown-header">
+          <div class="avatar" id="dd-avatar" style="width:38px;height:38px"></div>
+          <div><div class="dropdown-name" id="dd-name"></div><div class="dropdown-email" id="dd-email"></div></div>
+        </div>
+        <div class="dropdown-item" onclick="openProfileModal()"><span class="di-icon">👤</span> Account settings</div>
+        <div class="dropdown-item" onclick="openProfileModal()"><span class="di-icon">🖼️</span> Change profile photo</div>
+        <div class="dropdown-item" onclick="closeDropdown();switchTabByName('wellness')"><span class="di-icon">🧘</span> My wellness</div>
+        <div class="dropdown-item" onclick="closeDropdown();switchTabByName('vault')"><span class="di-icon">🔒</span> Community vault</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="closeDropdown()"><span class="di-icon">⚙️</span> Preferences</div>
+        <div class="dropdown-item danger" onclick="doLogout()"><span class="di-icon">🚪</span> Sign out</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-btn-feed" onclick="switchTabByName('feed')">📣 Feed</div>
+    <div class="tab" id="tab-btn-vault" onclick="switchTabByName('vault')">🔒 Vault</div>
+    <div class="tab" id="tab-btn-wellness" onclick="switchTabByName('wellness')">🧘 Wellness</div>
+  </div>
+
+  <!-- FEED -->
+  <div class="tab-content active" id="tab-feed">
+    <div class="feed-welcome">
+      <div class="welcome-line">Welcome back,</div>
+      <div class="welcome-name" id="feed-welcome-name">User</div>
+    </div>
+    <div class="post-composer">
+      <div class="composer-top">
+        <div class="avatar" id="feed-avatar" style="width:42px;height:42px;flex-shrink:0"></div>
+        <div class="composer-input" id="composer-placeholder" onclick="expandComposer()" tabindex="0">What's on your mind?</div>
+      </div>
+      <div class="composer-expanded" id="composer-expanded">
+        <textarea id="feed-input" placeholder="What's on your mind?" rows="3"></textarea>
+        <div class="photo-preview" id="photo-preview"><img id="photo-preview-img" src="" alt="preview"></div>
+        <input type="file" id="post-photo-file" accept="image/*" style="display:none" onchange="handlePostPhoto(event)">
+      </div>
+      <div class="composer-actions">
+        <button class="compose-btn photo" onclick="document.getElementById('post-photo-file').click();expandComposer()">📷 Photo</button>
+        <button class="compose-btn article" onclick="expandComposer()">✏️ Article</button>
+        <button class="btn-post" onclick="postFeed()">Post</button>
+      </div>
+    </div>
+    <div id="feed-posts"></div>
+  </div>
+
+  <!-- VAULT -->
+  <div class="tab-content" id="tab-vault">
+    <div class="anon-notice">🔒 You are posting as <strong style="color:var(--text);margin:0 .3rem">Community Member</strong> — completely anonymous</div>
+    <div class="post-composer">
+      <textarea class="composer-input" id="vault-input" rows="3" placeholder="Share anything anonymously. Our AI will respond with wisdom..." style="border-radius:8px;width:100%"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:.6rem">
+        <button class="btn-post" onclick="postVault()">Share Anonymously</button>
+      </div>
+    </div>
+    <div id="vault-posts"></div>
+  </div>
+
+  <!-- WELLNESS -->
+  <div class="tab-content" id="tab-wellness">
+    <div class="wellness-grid">
+      <div class="wellness-card" style="grid-column:span 2">
+        <h3>🔥 Calorie Tracker</h3>
+        <div style="display:flex;align-items:baseline;gap:.5rem">
+          <div class="stat-big" id="cal-consumed">0</div>
+          <div class="stat-label">/ <span id="cal-goal">2000</span> kcal goal</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="cal-progress" style="width:0%"></div></div>
+        <div style="font-size:.78rem;color:var(--muted)" id="cal-remaining">2000 kcal remaining</div>
+        <div class="calorie-input-row">
+          <input type="number" id="cal-input" placeholder="Enter kcal" min="0" max="9999">
+          <input type="number" id="cal-goal-input" placeholder="Goal" value="2000" min="100" max="9999" style="max-width:90px">
+          <button class="btn-sm" onclick="addCalories()">+ Add</button>
+          <button class="btn-sm" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border)" onclick="resetCalories()">Reset</button>
+        </div>
+      </div>
+      <div class="wellness-card" style="grid-column:span 2">
+        <h3>🧘 Meditation Timer</h3>
+        <div class="timer-display" id="timer-display">05:00</div>
+        <div class="progress-bar"><div class="progress-fill" id="timer-progress" style="width:100%"></div></div>
+        <div class="timer-controls" style="margin-top:.75rem">
+          <button class="btn-timer" onclick="setTimer(5)">5m</button>
+          <button class="btn-timer" onclick="setTimer(10)">10m</button>
+          <button class="btn-timer" onclick="setTimer(15)">15m</button>
+          <button class="btn-timer" onclick="setTimer(20)">20m</button>
+          <button class="btn-timer active" id="timer-toggle" onclick="toggleTimer()">Start</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <h3>📊 Weekly Calories</h3>
+      <canvas id="weekly-chart" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+let users=JSON.parse(localStorage.getItem('vr_users')||'[]');
+let currentUser=null;
+let geminiKey='AIzaSyCJ0dD7iFTXNaOd-SRXuQ3fFLHy8UCoJnc';
+let feedPosts=[
+  {id:1,author:'Arjun K',initials:'AK',sub:'Wellness Enthusiast',body:'Sometimes the hardest part is just showing up. Proud of everyone here. 💪',likes:12,liked:false,time:'2h ago',img:''},
+  {id:2,author:'Priya M',initials:'PM',sub:'Mindfulness Coach',body:'Just completed my 30-day meditation streak! Small steps, big changes. 🧘',likes:7,liked:false,time:'4h ago',img:''},
+];
+let vaultPosts=[
+  {id:1,body:'Feeling overwhelmed with work lately. Not sure how to cope.',aiReply:'As the Bhagavad Gita teaches in Chapter 2, Verse 47: focus on your duties, not the outcome. Each moment of effort is complete in itself.',time:'1h ago'},
+];
+let calConsumed=0,calGoal=2000;
+let weeklyData=[1800,2100,1650,2300,1950,0,0];
+let timerSecs=300,timerTotal=300,timerRunning=false,timerInterval=null;
+let weeklyChart=null;
+let pendingPostImg='';
+
+// --- Auth ---
+function showRegister(){document.getElementById('login-form').style.display='none';document.getElementById('register-form').style.display='block';document.getElementById('auth-title').textContent='Create account'}
+function showLogin(){document.getElementById('register-form').style.display='none';document.getElementById('login-form').style.display='block';document.getElementById('auth-title').textContent='Sign in to vResolve'}
+
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
+  const u=users.find(x=>x.email===email&&x.pass===pass);
+  if(!u){err.style.display='block';return}
+  err.style.display='none';currentUser=u;launchApp();
+}
+function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  const err=document.getElementById('reg-error');
+  if(!name||!email||!pass){err.textContent='All fields required.';err.style.display='block';return}
+  if(pass.length<6){err.textContent='Min 6 characters for password.';err.style.display='block';return}
+  if(users.find(x=>x.email===email)){err.textContent='Email already registered.';err.style.display='block';return}
+  const u={name,email,pass,initials:name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2),bio:'',avatar:''};
+  users.push(u);localStorage.setItem('vr_users',JSON.stringify(users));
+  currentUser=u;launchApp();
+}
+
+function launchApp(){
+  document.getElementById('auth').style.display='none';
+  document.getElementById('app').style.display='flex';
+  refreshUserUI();renderFeed();renderVault();initWellness();
+}
+function doLogout(){
+  currentUser=null;
+  document.getElementById('auth').style.display='flex';
+  document.getElementById('app').style.display='none';
+  closeDropdown();
+}
+
+function refreshUserUI(){
+  setAvatarEl(document.getElementById('topbar-avatar'),currentUser);
+  setAvatarEl(document.getElementById('feed-avatar'),currentUser);
+  setAvatarEl(document.getElementById('dd-avatar'),currentUser);
+  document.getElementById('dd-name').textContent=currentUser.name;
+  document.getElementById('dd-email').textContent=currentUser.email;
+  document.getElementById('feed-welcome-name').textContent=currentUser.name;
+}
+
+function setAvatarEl(el,u){
+  if(u.avatar){el.innerHTML=`<img src="${u.avatar}" alt="avatar">`;} 
+  else{el.textContent=u.initials;}
+}
+
+// --- Dropdown ---
+function toggleDropdown(){
+  const dd=document.getElementById('user-dropdown');
+  dd.style.display=dd.style.display==='none'?'block':'none';
+}
+function closeDropdown(){document.getElementById('user-dropdown').style.display='none';}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('user-dropdown');
+  const av=document.getElementById('topbar-avatar');
+  if(dd&&!dd.contains(e.target)&&!av.contains(e.target))dd.style.display='none';
+});
+
+// --- Profile Modal ---
+function openProfileModal(){
+  closeDropdown();
+  document.getElementById('settings-name').value=currentUser.name;
+  document.getElementById('settings-bio').value=currentUser.bio||'';
+  document.getElementById('settings-email').value=currentUser.email;
+  document.getElementById('settings-pass').value='';
+  const av=document.getElementById('modal-avatar-preview');
+  document.getElementById('modal-avatar-initials').textContent=currentUser.initials;
+  if(currentUser.avatar){av.innerHTML=`<img src="${currentUser.avatar}" alt="avatar"><div class="modal-avatar-overlay">Change<br>photo</div>`;}
+  else{av.innerHTML=`<span id="modal-avatar-initials">${currentUser.initials}</span><div class="modal-avatar-overlay">Change<br>photo</div>`;}
+  document.getElementById('profile-modal').style.display='flex';
+}
+function closeProfileModal(e){
+  if(!e||e.target===document.getElementById('profile-modal'))
+    document.getElementById('profile-modal').style.display='none';
+}
+function handleAvatarUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    currentUser.avatar=ev.target.result;
+    const av=document.getElementById('modal-avatar-preview');
+    av.innerHTML=`<img src="${ev.target.result}" alt="avatar"><div class="modal-avatar-overlay">Change<br>photo</div>`;
+  };r.readAsDataURL(file);
+}
+function saveProfile(){
+  const name=document.getElementById('settings-name').value.trim();
+  const bio=document.getElementById('settings-bio').value.trim();
+  const email=document.getElementById('settings-email').value.trim();
+  const pass=document.getElementById('settings-pass').value;
+  if(!name||!email)return;
+  currentUser.name=name;currentUser.bio=bio;currentUser.email=email;
+  currentUser.initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  if(pass.length>=6)currentUser.pass=pass;
+  const idx=users.findIndex(x=>x.email===currentUser.email||x.email===email);
+  if(idx>-1)users[idx]=currentUser;
+  localStorage.setItem('vr_users',JSON.stringify(users));
+  refreshUserUI();
+  document.getElementById('profile-modal').style.display='none';
+}
+
+// --- Tabs ---
+function switchTabByName(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-btn-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// --- Feed Composer ---
+function expandComposer(){
+  document.getElementById('composer-placeholder').style.display='none';
+  document.getElementById('composer-expanded').style.display='block';
+  document.getElementById('feed-input').focus();
+}
+function handlePostPhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    pendingPostImg=ev.target.result;
+    document.getElementById('photo-preview-img').src=ev.target.result;
+    document.getElementById('photo-preview').style.display='block';
+  };r.readAsDataURL(file);
+}
+
+function postFeed(){
+  const txt=document.getElementById('feed-input').value.trim();
+  if(!txt&&!pendingPostImg)return;
+  feedPosts.push({id:Date.now(),author:currentUser.name,initials:currentUser.initials,avatar:currentUser.avatar||'',sub:currentUser.bio||'vResolve Member',body:txt,likes:0,liked:false,time:'just now',img:pendingPostImg});
+  document.getElementById('feed-input').value='';
+  document.getElementById('composer-expanded').style.display='none';
+  document.getElementById('composer-placeholder').style.display='block';
+  document.getElementById('photo-preview').style.display='none';
+  pendingPostImg='';renderFeed();
+}
+
+function renderFeed(){
+  document.getElementById('feed-posts').innerHTML=feedPosts.slice().reverse().map(p=>`
+    <div class="post-card">
+      <div class="post-header">
+        <div class="post-header-left">
+          <div class="avatar" style="width:42px;height:42px;font-size:.82rem;flex-shrink:0">${p.avatar?`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${p.initials}`}</div>
+          <div class="post-meta">
+            <div class="post-name">${p.author}</div>
+            <div class="post-sub">${p.sub||''} · ${p.time}</div>
+          </div>
+        </div>
+      </div>
+      <div class="post-body">${p.body}</div>
+      ${p.img?`<img class="post-img" src="${p.img}" alt="post image">`:''}
+      <div class="post-actions">
+        <button class="post-action${p.liked?' liked':''}" onclick="likePost(${p.id})">♥ ${p.likes}</button>
+        <button class="post-action">💬 Comment</button>
+        <button class="post-action">↗ Share</button>
+      </div>
+    </div>`).join('');
+}
+function likePost(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.liked=!p.liked;p.likes+=p.liked?1:-1;renderFeed();}
+
+// --- Vault ---
+function renderVault(){
+  document.getElementById('vault-posts').innerHTML=vaultPosts.slice().reverse().map(p=>`
+    <div class="vault-post">
+      <div class="post-header">
+        <div class="post-header-left">
+          <div class="avatar" style="width:36px;height:36px;font-size:.72rem;background:#3a3a5e;flex-shrink:0">CM</div>
+          <div class="post-meta"><div class="post-name">Community Member</div><div class="post-sub">${p.time}</div></div>
+        </div>
+      </div>
+      <div class="post-body">${p.body}</div>
+      ${p.aiReply?`<div class="ai-response"><div class="ai-label">✦ AI First Responder</div>${p.aiReply}</div>`:''}
+      ${p.thinking?`<div class="ai-response"><div class="ai-label">✦ AI is responding...</div><div class="ai-thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`:''}
+    </div>`).join('');
+}
+async function postVault(){
+  const inp=document.getElementById('vault-input');
+  const txt=inp.value.trim();if(!txt)return;
+  const post={id:Date.now(),body:txt,aiReply:'',thinking:true,time:'just now'};
+  vaultPosts.push(post);inp.value='';renderVault();
+  const reply=await getAIReply(txt);
+  post.thinking=false;post.aiReply=reply;renderVault();
+}
+async function getAIReply(msg){
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:`You are a compassionate AI wellness guide. Respond to the following with wisdom from the Bhagavad Gita, referencing specific chapters and verses. Be empathetic and practical. Keep response under 120 words.\n\nUser shares: ${msg}`}]}]})
+    });
+    const d=await res.json();
+    return d.candidates?.[0]?.content?.parts?.[0]?.text||'The Gita teaches us to face all challenges with equanimity. (Chapter 2, Verse 48)';
+  }catch(e){
+    await new Promise(r=>setTimeout(r,900));
+    const mock=['As the Bhagavad Gita teaches in Chapter 6, Verse 5: "Let a man lift himself by his own Self alone." You have the strength within you.','Lord Krishna says in Chapter 2, Verse 14: Sensations of pain and pleasure are transient — endure them with patience and equanimity.','In Chapter 3, Verse 19: Without attachment, perform always the work that has to be done. Each step forward is a victory.'];
+    return mock[Math.floor(Math.random()*mock.length)];
+  }
+}
+
+// --- Wellness ---
+function initWellness(){updateCalUI();initChart();}
+function addCalories(){
+  const v=parseInt(document.getElementById('cal-input').value);
+  const g=parseInt(document.getElementById('cal-goal-input').value);
+  if(g>0)calGoal=g;if(v>0)calConsumed+=v;
+  document.getElementById('cal-input').value='';
+  const today=new Date().getDay();weeklyData[today===0?6:today-1]=calConsumed;
+  updateCalUI();updateChart();
+}
+function resetCalories(){calConsumed=0;updateCalUI();}
+function updateCalUI(){
+  document.getElementById('cal-consumed').textContent=calConsumed;
+  document.getElementById('cal-goal').textContent=calGoal;
+  const pct=Math.min(100,Math.round(calConsumed/calGoal*100));
+  document.getElementById('cal-progress').style.width=pct+'%';
+  const rem=calGoal-calConsumed;
+  document.getElementById('cal-remaining').textContent=rem>0?`${rem} kcal remaining`:'Goal reached! 🎉';
+}
+function setTimer(mins){clearInterval(timerInterval);timerRunning=false;timerSecs=timerTotal=mins*60;document.getElementById('timer-toggle').textContent='Start';document.getElementById('timer-toggle').classList.add('active');updateTimerUI();}
+function toggleTimer(){
+  if(timerRunning){clearInterval(timerInterval);timerRunning=false;document.getElementById('timer-toggle').textContent='Resume';}
+  else{
+    if(timerSecs<=0)timerSecs=timerTotal;
+    timerRunning=true;document.getElementById('timer-toggle').textContent='Pause';
+    timerInterval=setInterval(()=>{timerSecs--;updateTimerUI();if(timerSecs<=0){clearInterval(timerInterval);timerRunning=false;document.getElementById('timer-toggle').textContent='Done ✓';}},1000);
+  }
+}
+function updateTimerUI(){
+  const m=Math.floor(timerSecs/60).toString().padStart(2,'0');
+  const s=(timerSecs%60).toString().padStart(2,'0');
+  document.getElementById('timer-display').textContent=`${m}:${s}`;
+  document.getElementById('timer-progress').style.width=Math.round(timerSecs/timerTotal*100)+'%';
+}
+function initChart(){
+  const ctx=document.getElementById('weekly-chart').getContext('2d');
+  weeklyChart=new Chart(ctx,{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Calories',data:weeklyData,backgroundColor:'rgba(124,106,247,0.7)',borderColor:'rgba(124,106,247,1)',borderWidth:1,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8888aa',font:{size:11}}},x:{grid:{display:false},ticks:{color:'#8888aa',font:{size:11}}}}}});
+}
+function updateChart(){if(weeklyChart){weeklyChart.data.datasets[0].data=[...weeklyData];weeklyChart.update();}}
+</script>
+</body>
+</html>
